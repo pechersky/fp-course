@@ -256,7 +256,7 @@ findLeft ::
   -> MaybeListZipper a
 findLeft f (ListZipper l a r) = case break f l of
   (_ys, Nil) -> IsNotZ
-  (ys, x :. xs) -> IsZ (ListZipper xs x (ys ++ pure a ++ r))
+  (ys, x :. xs) -> IsZ (ListZipper xs x (reverse ys ++ pure a ++ r))
 
 -- | Seek to the right for a location matching a predicate, starting from the
 -- current one.
