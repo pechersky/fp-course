@@ -294,9 +294,11 @@ findRight f (ListZipper l a r) = case break f r of
 moveLeftLoop ::
   ListZipper a
   -> ListZipper a
-moveLeftLoop a@(ListZipper l x r) = case findLeft (const True) a of
-  IsZ z -> z
-  IsNotZ -> let (y :. ys) = reverse r ++ pure x in ListZipper ys y Nil
+moveLeftLoop (ListZipper l x r) = case l of
+  Nil -> case reverse r of
+    Nil -> ListZipper Nil x Nil
+    (r' :. rs) -> ListZipper (rs ++ pure x) r' Nil
+  (y :. ys) -> ListZipper ys y (x :. r)
 
 -- | Move the zipper right, or if there are no elements to the right, go to the far left.
 --
@@ -308,9 +310,11 @@ moveLeftLoop a@(ListZipper l x r) = case findLeft (const True) a of
 moveRightLoop ::
   ListZipper a
   -> ListZipper a
-moveRightLoop a@(ListZipper l x r) = case findRight (const True) a of
-  IsZ z -> z
-  IsNotZ -> let (y :. ys) = reverse l ++ pure x in ListZipper Nil y ys
+moveRightLoop (ListZipper l x r) = case r of
+  Nil -> case reverse l of
+    Nil -> ListZipper Nil x Nil
+    (l' :. ls) -> ListZipper Nil l' (ls ++ pure x)
+  (y :. ys) -> ListZipper (x :. l) y ys
 
 -- | Move the zipper one position to the left.
 --
@@ -451,7 +455,7 @@ moveLeftN' ::
   Int
   -> ListZipper a
   -> Either Int (ListZipper a)
-moveLeftN' n = go n 0
+moveLeftN' m = go m 0
   where
     go n k z
       | n == 0 = Right z
@@ -481,7 +485,7 @@ moveRightN' ::
   Int
   -> ListZipper a
   -> Either Int (ListZipper a)
-moveRightN' n = go n 0
+moveRightN' m = go m 0
   where
     go n k z
       | n == 0 = Right z
@@ -557,7 +561,7 @@ start z = case lefts z of
 deletePullLeft ::
   ListZipper a
   -> MaybeListZipper a
-deletePullLeft (ListZipper l x r) = case l of
+deletePullLeft (ListZipper l _x r) = case l of
   Nil -> IsNotZ
   (x :. xs) -> IsZ (ListZipper xs x r)
 
@@ -571,7 +575,7 @@ deletePullLeft (ListZipper l x r) = case l of
 deletePullRight ::
   ListZipper a
   -> MaybeListZipper a
-deletePullRight (ListZipper l x r) = case r of
+deletePullRight (ListZipper l _x r) = case r of
   Nil -> IsNotZ
   (x :. xs) -> IsZ (ListZipper l x xs)
 
