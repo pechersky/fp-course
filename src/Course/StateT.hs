@@ -168,9 +168,9 @@ distinct' ::
   (Ord a, Num a) =>
   List a
   -> List a
-distinct' xs = eval' (filtering go xs) S.empty
+distinct' xs = eval' (filtering ((not <$>) . go) xs) S.empty
   where
-    go x = getT >>= (\s -> putT (x `S.insert` s) >> pure (not (x `S.member` s)))
+    go x = StateT (\s -> pure (S.member x s, S.insert x s))
 
 -- | Remove all duplicate elements in a `List`.
 -- However, if you see a value greater than `100` in the list,
@@ -187,11 +187,11 @@ distinctF ::
   (Ord a, Num a) =>
   List a
   -> Optional (List a)
-distinctF xs = evalT (filtering go xs) S.empty
+distinctF xs = evalT (filtering ((not <$>) . go) xs) S.empty
   where
     go x
       | x > 100 = StateT (const Empty)
-      | otherwise = getT >>= (\s -> putT (x `S.insert` s) >> pure (not (x `S.member` s)))
+      | otherwise = StateT (\s -> pure (S.member x s, S.insert x s))
 
 -- | An `OptionalT` is a functor of an `Optional` value.
 data OptionalT f a =
@@ -286,10 +286,10 @@ distinctG ::
   (Integral a, Show a) =>
   List a
   -> Logger Chars (Optional (List a))
-distinctG xs = runOptionalT (evalT (filtering go xs) S.empty)
+distinctG xs = runOptionalT (evalT (filtering ((not <$>) . go) xs) S.empty)
   where
-    liftlog str = StateT (\s -> OptionalT (log1 str (Full ((), s))))
-    golog x = if even x then liftlog ("even number: " ++ show' x) else pure ()
+    logeven x = if even x then log1 ("even number: " ++ show' x) else pure
     go x
       | x > 100 = StateT (const (OptionalT (log1 ("aborting > 100: " ++ show' x) Empty)))
-      | otherwise = getT >>= (\s -> putT (x `S.insert` s) >> golog x >> pure (not (x `S.member` s)))
+      | otherwise = StateT (\s ->
+        OptionalT (logeven x (Full (S.member x s, S.insert x s))))
